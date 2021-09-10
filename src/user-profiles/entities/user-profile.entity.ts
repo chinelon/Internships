@@ -13,7 +13,10 @@ export class UserProfile {
     @Column({ nullable: true })
     photoMimeType: string;
 
-    @JoinColumn()
-    @OneToOne(type => User, user => user.userprofile, {cascade:true})
+    @Column()
+    userId: number;
+
+    @OneToOne(() => User, user => user.userprofile, {cascade:true})
+    @JoinColumn({name: 'userId'})
     user: User;
 }

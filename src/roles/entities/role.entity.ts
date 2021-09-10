@@ -1,4 +1,4 @@
-import {  Column, Entity, JoinColumn, ManyToMany, PrimaryGeneratedColumn } from "typeorm";
+import {  Column, Entity, JoinColumn, JoinTable, ManyToMany, PrimaryGeneratedColumn } from "typeorm";
 import {FunctionalArea} from "src/global/app.enum"
 import { User } from "src/users/entities/user.entity";
 
@@ -13,10 +13,10 @@ export class Role {
     @Column({nullable: true})
     description: string;
 
-    @Column({ type: 'enum', enum: FunctionalArea, nullable: true })
+    @Column({ type: 'enum', enum: FunctionalArea, nullable: true, default:FunctionalArea.OTR})
     functionalArea: FunctionalArea;
 
-    @JoinColumn()
-    @ManyToMany(type => User, user => user.role, {cascade:true})
-    user: User;
+    @JoinTable()
+    @ManyToMany(() => User, user => user.roles)
+    users: User[];
 }

@@ -29,7 +29,7 @@ export class Employee {
     @Column({ nullable: true })
     photo: string
 
-    @JoinColumn()
-    @OneToOne(type => User, user => user.employee, {cascade:true})
+    @OneToOne(() => User, user => user.employee, {cascade:true})
+    @JoinColumn({name: 'userId'})
     user: User;
 }

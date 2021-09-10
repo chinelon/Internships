@@ -1,9 +1,9 @@
 export class CreateEmployeeDto {
-    employeeNumber: string
-    firstName: string
-    middleName: string
-    lastName: string
-    jobPosition: string
-    jobTitle: string
-    photo: string
+    readonly employeeNumber?: string
+    readonly firstName: string
+    readonly middleName?: string
+    readonly lastName: string
+    readonly jobPosition?: string
+    readonly jobTitle?: string
+    readonly photo?: string
 }

@@ -1,8 +1,9 @@
-import {  Column, Entity, Index, OneToOne, PrimaryGeneratedColumn, ManyToMany } from "typeorm";
+import {  Column, Entity, Index, OneToOne, PrimaryGeneratedColumn, ManyToMany, ManyToOne, JoinColumn } from "typeorm";
 import {Gender} from "src/global/app.enum"
 import { Employee } from "src/employees/entities/employee.entity";
 import { UserProfile } from "src/user-profiles/entities/user-profile.entity";
 import { Role } from "src/roles/entities/role.entity";
+import { Department } from "src/departments/entities/department.entity";
 
 
 @Entity()
@@ -103,12 +104,21 @@ export class User {
     @Column({ select: false, nullable: true })
     public refreshTokenHash: string;
 
-    @OneToOne(type => Employee, employee => employee.user)
+    @OneToOne(() => Employee, employee => employee.user, {cascade: true})
     employee: Employee;
 
-    @OneToOne(type => UserProfile, userprofile => userprofile.user)
+    @OneToOne(() => UserProfile, userprofile => userprofile.user)
     userprofile: UserProfile;
 
-    @ManyToMany(type => Role, role => role.user)
-    role: Role;
+    @ManyToMany(() => Role, role => role.users)
+    roles: Role[];
+
+    @Column({nullable:true})
+    departmentId: number;
+
+    @ManyToOne(()=> Department, department => department.users)
+    @JoinColumn({name: 'departmentId'})
+    department: Department;
+
+    
 }

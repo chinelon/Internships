@@ -1,4 +1,5 @@
 export class CreateUserProfileDto {
-    photo: string; 
-    photoMimeType: string; 
+    readonly photo: string; 
+    readonly photoMimeType: string;
+    readonly userId?: number;
 }
