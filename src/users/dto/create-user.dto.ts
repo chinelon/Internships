@@ -1,9 +1,11 @@
 import {Gender} from "src/global/app.enum"
-export class CreateUserDto {
-    firstName: string;
-    middleName?: string;
+import { ApiProperty } from '@nestjs/swagger';
 
+export class CreateUserDto {
     
+    @ApiProperty()
+    readonly firstName: string;
+    readonly middleName?: string;
     readonly lastName: string;
     readonly commonName?: string;
     readonly homeAddress: string;
@@ -34,3 +36,4 @@ export class CreateUserDto {
     readonly userProfile?: CreateUserDto;
     readonly departmentId?: number
 }
+

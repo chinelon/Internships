@@ -1,12 +1,23 @@
 {
     "type": "postgres",
     "host": "localhost",
-    "port" : 5432,
+    "port" : 5433,
     "username": "postgres",
-    "password": "postgres",
+    "password": "derame23",
     "database": "internship",
     "entities": [
-        "dist/**/*.entity{.ts,.js"
+        "dist/**/*.entity{.ts,.js}"
     ],
-    "synchronize": true
+    "synchronize": true,
+    "cache": {
+        "type": "ioredis",
+        "options":{
+            "host": "localhost",
+            "port": 6379,
+            "name": "mymaster",
+            "password": "derame23",
+            "timeout": 10000,
+            "database": 1
+        }
+    }
 }

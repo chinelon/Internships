@@ -1,6 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PG_UNIQUE_CONSTRAINT_VIOLATION } from 'src/global/error.codes';
+import { logger } from 'src/main';
 import { DeleteResult, Repository, UpdateResult } from 'typeorm';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
@@ -13,15 +14,15 @@ export class DepartmentsService {
 
 
   ) { }
-  async create(createDepartmentDto: CreateDepartmentDto): Promise<Department> {
+  async create(createDepartmentDto: CreateDepartmentDto, req: any): Promise<Department> {
     try {
       const newDepartment = this.departmentRepository.create(createDepartmentDto);
 
-      const department = await this.departmentRepository.save(newDepartment)
-
-      return department;
+      return await this.departmentRepository.save(newDepartment)
 
     } catch (error) {
+      logger.error(error.message, {time: new Date(), request_method: req.method, endpoint: req.url, client: req.socket.remoteAddress, agent: req.headers['user-agent']}),
+      logger.debug(error.stack, { time: new Date(), request_method: req.method, endpoint: req.url, client: req.socket.remoteAddress, agent: req.headers['user-agent']})
       if (error && error.code === PG_UNIQUE_CONSTRAINT_VIOLATION) {
         throw new HttpException({
           status: HttpStatus.BAD_REQUEST,
@@ -59,9 +60,9 @@ export class DepartmentsService {
   }
 
 
-  async findAll(): Promise<Department[]> {
+  async findAll(): Promise<[Department[], number]> {
     try {
-      return await this.departmentRepository.find();
+      return await this.departmentRepository.findAndCount();
 
     } catch (error) {
       throw new HttpException({
@@ -70,6 +71,19 @@ export class DepartmentsService {
       }, HttpStatus.INTERNAL_SERVER_ERROR)
     }
   }
+
+  async findAllWithOptions(findOptions: string): Promise<[Department[], number]> {
+    try{
+      return await this.departmentRepository.findAndCount(JSON.parse(findOptions))
+
+    }catch (error) {
+      throw new HttpException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        error: `There was a problem assessing user data: ${error.message}`
+      }, HttpStatus.INTERNAL_SERVER_ERROR)
+    }
+  }
+
 
   async findOne(id: number): Promise<Department>{
     try {
@@ -95,49 +109,63 @@ export class DepartmentsService {
        }, HttpStatus.INTERNAL_SERVER_ERROR)
      }
   }
+
+  async addEmployeeById(departmentId: number, employeeId: number): Promise<void>{
+    try{
+      return await this.departmentRepository.createQueryBuilder()
+      .relation(Department, "employee")
+      .of(departmentId)
+      .add(employeeId)
+    }catch(error){
+      throw new HttpException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        error: `There was a problem adding employee data: ${error.message}`
+      }, HttpStatus.INTERNAL_SERVER_ERROR)
+    }
+  }
+
+  async removeEmployeeById(departmentId: number, employeeId: number): Promise<void>{
+    try{
+      return await this.departmentRepository.createQueryBuilder()
+      .relation(Department, "employees")
+      .of(departmentId)
+      .remove(employeeId)
+    }catch(error){
+      throw new HttpException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        error: `There was a problem removing employee data: ${error.message}`
+      }, HttpStatus.INTERNAL_SERVER_ERROR)
+    }
+  }
+
   
-  async addUserById(departmentId: number, userId: number): Promise<void>{
+  async addEmployeesById(departmentId: number, employeeIds: number[]): Promise<void>{
     try{
       return await this.departmentRepository.createQueryBuilder()
-      .relation(Department, "users")
+      .relation(Department, "employees")
       .of(departmentId)
-      .add(userId)
+      .add(employeeIds)
     }catch(error){
-
+      throw new HttpException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        error: `There was a problem adding employee data: ${error.message}`
+      }, HttpStatus.INTERNAL_SERVER_ERROR)
     }
   }
 
-  async addUsersById(departmentId: number, userIds: number): Promise<void>{
+  async removeEmployeesById(departmentId: number, employeeIds: number[]): Promise<void>{
     try{
       return await this.departmentRepository.createQueryBuilder()
-      .relation(Department, "users")
+      .relation(Department, "employees")
       .of(departmentId)
-      .add(userIds)
+      .remove(employeeIds)
     }catch(error){
-
+      throw new HttpException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        error: `There was a problem removing employee data: ${error.message}`
+      }, HttpStatus.INTERNAL_SERVER_ERROR)
     }
   }
 
-  async removeUserById(departmentId: number, userId: number): Promise<void>{
-    try{
-      return await this.departmentRepository.createQueryBuilder()
-      .relation(Department, "users")
-      .of(departmentId)
-      .remove(userId)
-    }catch(error){
-
-    }
-  }
-
-  async removeUsersById(departmentId: number, userIds: number): Promise<void>{
-    try{
-      return await this.departmentRepository.createQueryBuilder()
-      .relation(Department, "users")
-      .of(departmentId)
-      .remove(userIds)
-    }catch(error){
-
-    }
-  }
-
+  
 }

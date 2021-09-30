@@ -103,8 +103,8 @@ export class User {
     /* for refresh token save after successful login*/
     @Column({ select: false, nullable: true })
     public refreshTokenHash: string;
-
-    @OneToOne(() => Employee, employee => employee.user, {cascade: true})
+    
+    @OneToOne(() => Employee, employee => employee.user)
     employee: Employee;
 
     @OneToOne(() => UserProfile, userprofile => userprofile.user)
@@ -113,12 +113,7 @@ export class User {
     @ManyToMany(() => Role, role => role.users)
     roles: Role[];
 
-    @Column({nullable:true})
-    departmentId: number;
-
-    @ManyToOne(()=> Department, department => department.users)
-    @JoinColumn({name: 'departmentId'})
-    department: Department;
+   
 
     
 }

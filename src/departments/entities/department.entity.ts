@@ -1,6 +1,7 @@
 import {  Column, Entity, JoinColumn, ManyToMany, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import {CountryList} from "src/global/app.enum"
 import { User } from "src/users/entities/user.entity";
+import { Employee } from "src/employees/entities/employee.entity";
 
 @Entity()
 export class Department {
@@ -13,10 +14,10 @@ export class Department {
     @Column({nullable: true})
     description: string;
 
-    @Column()
+    @Column({ type: 'enum', enum: CountryList, nullable: true })
     location: CountryList;
 
     @JoinColumn()
-    @OneToMany(() => User, user => user.department)
-    users: User[];
+    @OneToMany(() => Employee, employee => employee.department)
+    employees: Employee[];
 }

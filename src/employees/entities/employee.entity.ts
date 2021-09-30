@@ -1,5 +1,6 @@
+import { Department } from "src/departments/entities/department.entity";
 import { User } from "src/users/entities/user.entity";
-import {  Column, Entity, Index, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import {  Column, Entity, Index, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 
 
 @Entity()
@@ -29,7 +30,18 @@ export class Employee {
     @Column({ nullable: true })
     photo: string
 
-    @OneToOne(() => User, user => user.employee, {cascade:true})
+    @OneToOne(() => User, user => user.employee, {cascade: true})
     @JoinColumn({name: 'userId'})
     user: User;
+
+    @Column({nullable:true})
+    userId: number;
+
+    @Column({nullable:true})
+    departmentId: number;
+
+    @ManyToOne(()=> Department, department => department.employees)
+    @JoinColumn({name: 'departmentId'})
+    department: Department;
+
 }

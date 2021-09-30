@@ -1,22 +1,24 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
+import { InjectConnection, InjectRepository } from '@nestjs/typeorm';
 import { catchError } from 'rxjs';
-import { DeleteResult, Repository, UpdateResult } from 'typeorm';
+import { Connection, DeleteResult, Repository, UpdateResult } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { PG_UNIQUE_CONSTRAINT_VIOLATION } from 'src/global/error.codes';
+import { logger } from 'src/main';
 
 @Injectable()
 export class UsersService {
 
   constructor(
-    @InjectRepository(User) private userRepository: Repository<User>
+    @InjectRepository(User) private userRepository: Repository<User>,
+    @InjectConnection('default') private connection: Connection
 
 
   ) { }
-  async create(createUserDto: CreateUserDto): Promise<User> {
+  async create(createUserDto: CreateUserDto, req: any): Promise<User> {
     try {
       const newUser = this.userRepository.create(createUserDto);
 
@@ -26,10 +28,13 @@ export class UsersService {
       })
 
       const user = await this.userRepository.save(newUser)
+      await this.connection.queryResultCache.remove(["user"]);
 
       return user;
 
     } catch (error) {
+      logger.error(error.message, {time: new Date(), request_method: req.method, endpoint: req.url, client: req.socket.remoteAddress, agent: req.headers['user-agent']}),
+      logger.debug(error.stack, { time: new Date(), request_method: req.method, endpoint: req.url, client: req.socket.remoteAddress, agent: req.headers['user-agent']})
       if (error && error.code === PG_UNIQUE_CONSTRAINT_VIOLATION) {
         throw new HttpException({
           status: HttpStatus.BAD_REQUEST,
@@ -52,33 +57,52 @@ export class UsersService {
           updateUserDto.passwordHash = hash
         })
       }
-      return await this.userRepository.update(id, { ...updateUserDto })
+      const updateResult =  await this.userRepository.update(id, { ...updateUserDto })
+      await this.connection.queryResultCache.remove(["user"]);
+      return updateResult;
 
     } catch (error) {
       if (error && error.code === PG_UNIQUE_CONSTRAINT_VIOLATION) {
         throw new HttpException({
           status: HttpStatus.BAD_REQUEST,
-          error: `There was a problem with user creation: ${error.message}`
+          error: `There was a problem with user update: ${error.message}`
         }, HttpStatus.BAD_REQUEST)
       } else
 
         throw new HttpException({
           status: HttpStatus.INTERNAL_SERVER_ERROR,
-          error: `There was a problem with user creation: ${error.message}`
+          error: `There was a problem with user update: ${error.message}`
         }, HttpStatus.INTERNAL_SERVER_ERROR)
 
     }
 
   }
 
-  async findAll(): Promise<User[]> {
+  async findAll(): Promise<[User[], number]> {
     try {
-      return await this.userRepository.find();
+      return await this.userRepository.findAndCount({
+        cache:{
+          id: "users",
+          milliseconds: 10000
+        }
+      });
 
     } catch (error) {
       throw new HttpException({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
-        error: `There was a problem assessing user data: ${error.message}`
+        error: `There was a problem finding user data: ${error.message}`
+      }, HttpStatus.INTERNAL_SERVER_ERROR)
+    }
+  }
+
+  async findAllWithOptions(findOptions: string): Promise<[User[], number]> {
+    try{
+      return await this.userRepository.findAndCount(JSON.parse(findOptions))
+
+    }catch (error) {
+      throw new HttpException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        error: `There was a problem finding user data: ${error.message}`
       }, HttpStatus.INTERNAL_SERVER_ERROR)
     }
   }
@@ -90,7 +114,7 @@ export class UsersService {
     } catch (error) {
       throw new HttpException({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
-        error: `There was a problem assessing user data: ${error.message}`
+        error: `There was a problem finding user data: ${error.message}`
       }, HttpStatus.INTERNAL_SERVER_ERROR)
     }
   }
@@ -114,6 +138,10 @@ export class UsersService {
       .of(userId)
       .add(roleId)
     }catch(error){
+      throw new HttpException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        error: `There was a problem adding role data: ${error.message}`
+      }, HttpStatus.INTERNAL_SERVER_ERROR)
 
     }
   }
@@ -125,6 +153,10 @@ export class UsersService {
       .of(userId)
       .add(roleIds)
     }catch(error){
+      throw new HttpException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        error: `There was a problem adding roles data: ${error.message}`
+      }, HttpStatus.INTERNAL_SERVER_ERROR)
 
     }
   }
@@ -136,6 +168,10 @@ export class UsersService {
       .of(userId)
       .remove(roleId)
     }catch(error){
+      throw new HttpException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        error: `There was a problem removing role data: ${error.message}`
+      }, HttpStatus.INTERNAL_SERVER_ERROR)
 
     }
   }
@@ -147,6 +183,10 @@ export class UsersService {
       .of(userId)
       .remove(roleIds)
     }catch(error){
+      throw new HttpException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        error: `There was a problem removing role data: ${error.message}`
+      }, HttpStatus.INTERNAL_SERVER_ERROR)
 
     }
   }
@@ -159,6 +199,10 @@ export class UsersService {
       .set(userProfileId)
 
     }catch(error){
+      throw new HttpException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        error: `There was a problem setting user data: ${error.message}`
+      }, HttpStatus.INTERNAL_SERVER_ERROR)
       
     }
   }
@@ -171,6 +215,42 @@ export class UsersService {
       .set(null)
 
     }catch(error){
+      throw new HttpException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        error: `There was a problem unsetting user data: ${error.message}`
+      }, HttpStatus.INTERNAL_SERVER_ERROR)
+      
+    }
+  }
+
+  async setEmployeeById(userId: number, employeeId: number): Promise<void>{
+    try{
+      return await this.userRepository.createQueryBuilder()
+      .relation(User, "employee")
+      .of(userId)
+      .set(employeeId)
+
+    }catch(error){
+      throw new HttpException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        error: `There was a problem seting employee data: ${error.message}`
+      }, HttpStatus.INTERNAL_SERVER_ERROR)
+      
+    }
+  }
+
+  async unsetEmployeeById(userId: number): Promise<void>{
+    try{
+      return await this.userRepository.createQueryBuilder()
+      .relation(User, "employee")
+      .of(userId)
+      .set(null)
+
+    }catch(error){
+      throw new HttpException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        error: `There was a problem unsetting employee data: ${error.message}`
+      }, HttpStatus.INTERNAL_SERVER_ERROR)
       
     }
   }

@@ -1,19 +1,27 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Req, Query } from '@nestjs/common';
 import { EmployeesService } from './employees.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
+import { Employee } from './entities/employee.entity';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('employees')
 @Controller('employees')
 export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}
 
   @Post()
-  create(@Body() createEmployeeDto: CreateEmployeeDto) {
-    return this.employeesService.create(createEmployeeDto);
+  create(@Body() createEmployeeDto: CreateEmployeeDto, @Req() req: any) {
+    return this.employeesService.create(createEmployeeDto, req);
   }
 
   @Get()
-  findAll() {
+  findAll(@Query() query: string):Promise<[Employee[], number]> {
+    for(const queryKey of Object.keys(query)){
+      if(queryKey == "find-optionns"){
+        return this.employeesService.findAllWithOptions(decodeURI(query[queryKey]))
+      }
+    }
     return this.employeesService.findAll();
   }
 
@@ -30,5 +38,15 @@ export class EmployeesController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.employeesService.remove(+id);
+  }
+
+  @Patch(':employeeId/departments/:departmentId')
+  setDepartmentById(employeeId: string, departmentId: string): Promise<void>{
+    return this.employeesService.setDepartmentById(+employeeId, +departmentId, )
+  }
+
+  @Delete(':employeeid/departments/:departmentId')
+  unsetDepartmentById(employeeId: string): Promise<void>{
+    return this.employeesService.unsetDepartmentById(+employeeId)
   }
 }
